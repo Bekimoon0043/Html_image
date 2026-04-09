@@ -2,7 +2,7 @@ services:
   - type: web
     name: html-to-image-service
     runtime: docker
-    repo: https://github.com/Bekimoon0043/html-to-image-service.git
+    repo: https://github.com/Bekimoon0043/Html_image.git
     plan: free
     envVars:
       - key: API_KEY
