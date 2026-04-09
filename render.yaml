@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: html-to-image-service
+    runtime: docker
+    repo: https://github.com/Bekimoon0043/html-to-image-service.git
+    plan: free
+    envVars:
+      - key: API_KEY
+        sync: false                     # Set manually in Render dashboard
+    healthCheckPath: /health

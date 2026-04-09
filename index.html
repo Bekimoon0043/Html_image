@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML to Image Converter</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
+    button { padding: 0.6rem 1.5rem; font-size: 1rem; cursor: pointer; }
+    #preview { margin-top: 2rem; border: 1px solid #ccc; padding: 1rem; background: #f9f9f9; }
+    #preview img { max-width: 100%; border: 1px solid #ddd; }
+    .note { font-size: 0.9rem; color: #666; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>🖼️ HTML to Image Converter</h1>
+  <p>Paste your HTML below and click "Generate Image".</p>
+
+  <textarea id="htmlInput" placeholder="<div style='background: #e0f2fe; padding: 20px;'><h1>Hello, World!</h1><p>Your HTML here</p></div>"><div style="background: #e0f2fe; padding: 20px; font-family: Arial;">
+  <h1>Hello, World!</h1>
+  <p>This is a sample HTML snippet.</p>
+</div></textarea>
+
+  <div>
+    <label>Width: <input id="width" type="number" value="800" min="100" max="1920"></label>
+    <label style="margin-left: 1rem;">Height: <input id="height" type="number" value="600" min="100" max="1920"></label>
+    <label style="margin-left: 1rem;"><input id="fullPage" type="checkbox"> Full Page</label>
+  </div>
+
+  <button id="generateBtn">Generate Image</button>
+  <span id="status" style="margin-left: 1rem;"></span>
+
+  <div id="preview">
+    <h3>Preview</h3>
+    <img id="outputImage" src="" alt="Generated image will appear here" style="display: none;">
+    <p id="placeholder">Click "Generate Image" to see the result.</p>
+  </div>
+
+  <div class="note">
+    <strong>n8n Integration:</strong> Use HTTP Request node with POST to <code>/render</code>.<br>
+    Body (JSON): <code>{"html": "your HTML here"}</code>
+  </div>
+
+  <script>
+    const apiUrl = window.location.origin + '/render';
+    // If you set an API_KEY on the server, add it as a query param here
+    const apiKey = null;  // e.g., '?apiKey=your-secret-key'
+
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      const html = document.getElementById('htmlInput').value;
+      const width = document.getElementById('width').value;
+      const height = document.getElementById('height').value;
+      const fullPage = document.getElementById('fullPage').checked;
+
+      const statusEl = document.getElementById('status');
+      const imgEl = document.getElementById('outputImage');
+      const placeholder = document.getElementById('placeholder');
+
+      statusEl.textContent = 'Generating...';
+      imgEl.style.display = 'none';
+      placeholder.style.display = 'block';
+
+      try {
+        const response = await fetch(apiUrl + (apiKey ? `?apiKey=${apiKey}` : ''), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html, width, height, fullPage })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Request failed');
+        }
+
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
+        imgEl.src = imageUrl;
+        imgEl.style.display = 'block';
+        placeholder.style.display = 'none';
+        statusEl.textContent = 'Done!';
+      } catch (error) {
+        statusEl.textContent = 'Error: ' + error.message;
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
