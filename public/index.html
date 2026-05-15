@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML to Image Converter</title>
+  <title>HTML to Image/PDF Converter</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
     textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
@@ -11,11 +11,12 @@
     #preview { margin-top: 2rem; border: 1px solid #ccc; padding: 1rem; background: #f9f9f9; }
     #preview img { max-width: 100%; border: 1px solid #ddd; }
     .note { font-size: 0.9rem; color: #666; margin-top: 1rem; }
+    select { padding: 0.3rem; margin-left: 1rem; }
   </style>
 </head>
 <body>
-  <h1>🖼️ HTML to Image Converter</h1>
-  <p>Paste your HTML below and click "Generate Image".</p>
+  <h1>🖼️ HTML to Image/PDF Converter</h1>
+  <p>Paste your HTML below and choose output format.</p>
 
   <textarea id="htmlInput" placeholder="<div style='background: #e0f2fe; padding: 20px;'><h1>Hello, World!</h1><p>Your HTML here</p></div>"><div style="background: #e0f2fe; padding: 20px; font-family: Arial;">
   <h1>Hello, World!</h1>
@@ -26,46 +27,58 @@
     <label>Width: <input id="width" type="number" value="800" min="100" max="1920"></label>
     <label style="margin-left: 1rem;">Height: <input id="height" type="number" value="600" min="100" max="1920"></label>
     <label style="margin-left: 1rem;"><input id="fullPage" type="checkbox"> Full Page</label>
+    <label style="margin-left: 1rem;">
+      Format:
+      <select id="format">
+        <option value="png">PNG Image</option>
+        <option value="pdf">PDF Document</option>
+      </select>
+    </label>
   </div>
 
-  <button id="generateBtn">Generate Image</button>
+  <button id="generateBtn">Generate</button>
   <span id="status" style="margin-left: 1rem;"></span>
 
   <div id="preview">
-    <h3>Preview</h3>
+    <h3>Preview / Download</h3>
     <img id="outputImage" src="" alt="Generated image will appear here" style="display: none;">
-    <p id="placeholder">Click "Generate Image" to see the result.</p>
+    <div id="pdfPlaceholder" style="display: none;">
+      <p>✅ PDF generated. <a id="pdfLink" href="#" download="output.pdf">Download PDF</a> or <a id="pdfOpen" href="#" target="_blank">Open in new tab</a>.</p>
+    </div>
+    <p id="placeholder">Click "Generate" to see the result.</p>
   </div>
 
   <div class="note">
     <strong>n8n Integration:</strong> Use HTTP Request node with POST to <code>/render</code>.<br>
-    Body (JSON): <code>{"html": "your HTML here"}</code>
+    Body (JSON): <code>{"html": "your HTML here", "format": "png"}</code> (or <code>"pdf"</code>)
   </div>
 
   <script>
     const apiUrl = window.location.origin + '/render';
-    // If you set an API_KEY on the server, add it as a query param here
-    const apiKey = null;  // e.g., '?apiKey=your-secret-key'
+    const apiKey = null;  // Set if needed: '?apiKey=your-key'
 
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const html = document.getElementById('htmlInput').value;
       const width = document.getElementById('width').value;
       const height = document.getElementById('height').value;
       const fullPage = document.getElementById('fullPage').checked;
+      const format = document.getElementById('format').value;
 
       const statusEl = document.getElementById('status');
       const imgEl = document.getElementById('outputImage');
+      const pdfPlaceholder = document.getElementById('pdfPlaceholder');
       const placeholder = document.getElementById('placeholder');
 
       statusEl.textContent = 'Generating...';
       imgEl.style.display = 'none';
+      pdfPlaceholder.style.display = 'none';
       placeholder.style.display = 'block';
 
       try {
         const response = await fetch(apiUrl + (apiKey ? `?apiKey=${apiKey}` : ''), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ html, width, height, fullPage })
+          body: JSON.stringify({ html, width, height, fullPage, format })
         });
 
         if (!response.ok) {
@@ -74,11 +87,24 @@
         }
 
         const blob = await response.blob();
-        const imageUrl = URL.createObjectURL(blob);
-        imgEl.src = imageUrl;
-        imgEl.style.display = 'block';
-        placeholder.style.display = 'none';
-        statusEl.textContent = 'Done!';
+        const url = URL.createObjectURL(blob);
+
+        if (format === 'pdf') {
+          // Show PDF download controls
+          pdfPlaceholder.style.display = 'block';
+          const pdfLink = document.getElementById('pdfLink');
+          const pdfOpen = document.getElementById('pdfOpen');
+          pdfLink.href = url;
+          pdfOpen.href = url;
+          placeholder.style.display = 'none';
+          statusEl.textContent = 'PDF ready!';
+        } else {
+          // PNG image
+          imgEl.src = url;
+          imgEl.style.display = 'block';
+          placeholder.style.display = 'none';
+          statusEl.textContent = 'Done!';
+        }
       } catch (error) {
         statusEl.textContent = 'Error: ' + error.message;
         console.error(error);
