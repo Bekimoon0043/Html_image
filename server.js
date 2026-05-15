@@ -7,9 +7,13 @@ const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY || null;
 
 app.use(express.json({ limit: '5mb' }));
-// Serve the root index.html and static assets (CSS, etc.) from current directory
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.use(express.static(__dirname));
+// Serve static files (including index.html) from the "public" folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Optional: redirect root to /index.html (already handled by static)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 function requireApiKey(req, res, next) {
   if (!API_KEY) return next();
@@ -22,7 +26,6 @@ function requireApiKey(req, res, next) {
 
 app.get('/health', (req, res) => res.send('OK'));
 
-// Extended endpoint: accepts { html, width, height, fullPage, format = 'png' }
 app.post('/render', requireApiKey, async (req, res) => {
   const { html, width = 800, height = 600, fullPage = false, format = 'png' } = req.body;
 
@@ -53,7 +56,6 @@ app.post('/render', requireApiKey, async (req, res) => {
         height: `${height}px`
       };
       if (fullPage) {
-        // Get the full scroll height of the page
         const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
         pdfOptions = {
           printBackground: true,
@@ -66,7 +68,6 @@ app.post('/render', requireApiKey, async (req, res) => {
       res.set('Content-Disposition', 'inline; filename="document.pdf"');
       res.send(pdfBuffer);
     } else {
-      // PNG (default)
       const screenshotOptions = fullPage ? { fullPage: true } : { type: 'png' };
       const imageBuffer = await page.screenshot(screenshotOptions);
       res.set('Content-Type', 'image/png');
